@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import {
   cpSync,
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -20,6 +22,13 @@ function scratch(t, entries) {
   const directory = mkdtempSync(join(tmpdir(), 'hibi-directory-'))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
   cpSync(join(root, 'addons'), join(directory, 'addons'), { recursive: true })
+  mkdirSync(join(directory, 'signatures'))
+  for (const { id } of entries)
+    if (existsSync(join(root, 'signatures', `${id}.json`)))
+      cpSync(
+        join(root, 'signatures', `${id}.json`),
+        join(directory, 'signatures', `${id}.json`),
+      )
   writeFileSync(join(directory, 'catalog.json'), JSON.stringify(entries))
   return directory
 }

@@ -26,3 +26,5 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run check:remote
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

@@ -74,16 +74,16 @@ Copy `id`, `name`, `description`, `version`, `apiVersion`, `kind`, and `authors`
 ]
 ```
 
-The catalog has no field for signatures or endorsements. Listing an addon does not sign it. If your package includes a Hibi signature, Hibi shows that when someone installs it.
+The catalog has no field for signatures. After a maintainer accepts your addon, they sign the exact listed files and add the signature as `signatures/<id>.json`. You do not need a key, and you do not need to sign anything yourself.
 
 ## Test and submit
 
-1. Run `npm run check` and `npm test`. For a linked repository or download, also run `npm run check:remote`.
+1. Run `npm run check` and `npm test`. For a linked repository or download, also run `npm run check:remote`. Until a maintainer adds the signature, the checks report that your entry needs one; fix everything else they report.
 2. Install the package in Hibi. Use **Install addon…** for a local folder or **Install from URL** for a repository or ZIP file. Unsigned packages need **Allow unsigned addons** under **Settings → Addon Manager → Security**.
 3. Enable the addon, use it, disable it, and check that its readme explains those steps.
 4. Open a pull request that describes what the addon does, which access it asks for, and how you tested it.
 
-Reviewers read the package source and its manifest. They do not run build scripts or install dependencies from linked repositories during review.
+Reviewers read the package source and its manifest. They do not run build scripts or install dependencies from linked repositories during review. When the addon is accepted, a maintainer signs it and merges the pull request. The addon then appears on [hibi.garden/addons](https://www.hibi.garden/addons/) and in Hibi after **Refresh**; no Hibi release is needed. Each new version needs a new pull request and a new signature.
 
 ## Licenses
 
