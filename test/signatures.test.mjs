@@ -353,3 +353,28 @@ test('downloads may redirect only to HTTPS addresses', async (t) => {
     /redirected away from HTTPS/,
   )
 })
+
+test('packages stay within Hibi limits once their signature is added', async (t) => {
+  const fill = (directory, count) => {
+    rmSync(join(directory, 'addons/typing-speed/hibi-addon.sig.json'))
+    for (let index = 0; index < count; index++)
+      writeFileSync(
+        join(directory, `addons/typing-speed/extra-${index}.txt`),
+        '',
+      )
+  }
+  // Without a packaged copy, typing-speed has five files; Hibi adds the
+  // signature as a sixth. 995 extra files fit as is but not with the signature.
+  const fits = scratch(t, [doom, typing])
+  fill(fits, 994)
+  assert.deepEqual(
+    (await checkDirectory(fits, { pending: true })).map((entry) => entry.id),
+    ['hibi-doom', 'typing-speed'],
+  )
+  const over = scratch(t, [doom, typing])
+  fill(over, 995)
+  await assert.rejects(
+    checkDirectory(over, { pending: true }),
+    /with its Hibi signature: a package can contain up to 1,000 files/,
+  )
+})

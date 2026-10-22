@@ -12,7 +12,12 @@ import {
 import { appendFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkDirectory, inspectDirectory, TRUST_KEYS } from './check.mjs'
+import {
+  checkDirectory,
+  inspectDirectory,
+  signatureEnvelope,
+  TRUST_KEYS,
+} from './check.mjs'
 
 /** The directory's package key; the workflow signs with this key only. */
 export const CI_KEY_ID = '8dc7673025d00464'
@@ -43,30 +48,13 @@ export async function signDirectory(
   const signed = []
   for (const { entry, hashes, problem } of results) {
     if (!problem && entry.id !== resign) continue
-    // The same statement shape and field order as Hibi's scripts/addon-signing.mjs.
-    const statement = Buffer.from(
-      JSON.stringify({
-        type: 'hibi-addon-signature',
-        version: 1,
-        id: entry.id,
-        addonVersion: entry.version,
-        files: Object.fromEntries(
-          Object.entries(hashes).sort(([a], [b]) =>
-            a < b ? -1 : a > b ? 1 : 0,
-          ),
-        ),
-        signedAt: now().toISOString(),
-      }),
+    const envelope = signatureEnvelope(
+      entry,
+      hashes,
+      key.keyId,
+      (statement) => sign(null, statement, key.privateKey),
+      now().toISOString(),
     )
-    const envelope = `${JSON.stringify(
-      {
-        keyId: key.keyId,
-        statement: statement.toString('base64'),
-        signature: sign(null, statement, key.privateKey).toString('base64'),
-      },
-      null,
-      2,
-    )}\n`
     writeFileSync(join(root, 'signatures', `${entry.id}.json`), envelope)
     const own = entry.path && join(root, entry.path, 'hibi-addon.sig.json')
     if (own && existsSync(own)) writeFileSync(own, envelope)

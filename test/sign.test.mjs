@@ -12,7 +12,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { checkDirectory, TRUST_KEYS } from '../scripts/check.mjs'
+import {
+  checkDirectory,
+  inspectDirectory,
+  signatureEnvelope,
+  TRUST_KEYS,
+} from '../scripts/check.mjs'
 import { CI_KEY_ID, signDirectory, signingKey } from '../scripts/sign.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -148,5 +153,23 @@ test('forged signatures are refused, not replaced', async (t) => {
   await assert.rejects(
     signDirectory(directory, { key, keys, fetch }),
     /invalid signature/,
+  )
+})
+
+test('pending entries are measured with the signature the signer writes', async (t) => {
+  const directory = scratch(t)
+  writeFileSync(join(directory, 'addons/typing-speed/README.md'), '# New\n')
+  const [{ entry, hashes }] = await inspectDirectory(directory, { keys })
+  const measured = signatureEnvelope(
+    entry,
+    hashes,
+    '0'.repeat(16),
+    () => Buffer.alloc(64),
+    new Date(0).toISOString(),
+  )
+  await signDirectory(directory, { key, keys, fetch })
+  assert.equal(
+    Buffer.byteLength(measured),
+    readFileSync(join(directory, 'signatures/typing-speed.json')).length,
   )
 })

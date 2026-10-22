@@ -253,10 +253,8 @@ function checkLimits(label, sizes) {
  * and returns the SHA-256 of every file the signature covers.
  */
 function checkFiles(label, entry, own, read, parse) {
-  checkLimits(
-    label,
-    own.map((path) => [path, read(path).length]),
-  )
+  const sizes = own.map((path) => [path, read(path).length])
+  checkLimits(label, sizes)
   for (const path of own)
     if (!ALLOWED_FILES.has(extname(path).toLowerCase()))
       throw new Error(
@@ -286,7 +284,7 @@ function checkFiles(label, entry, own, read, parse) {
         throw new Error(`${label}: ${theme} is missing.`)
       JSON.parse(read(theme).toString('utf8'))
     }
-  return Object.fromEntries(
+  const hashes = Object.fromEntries(
     own
       .filter((path) => path !== SIGNATURE_FILE)
       .map((path) => [
@@ -294,6 +292,59 @@ function checkFiles(label, entry, own, read, parse) {
         createHash('sha256').update(read(path)).digest('hex'),
       ]),
   )
+  return { hashes, sizes }
+}
+
+/**
+ * The envelope Hibi's signer writes for these files, in the same shape and
+ * field order as Hibi's scripts/addon-signing.mjs. `sign` returns the
+ * 64-byte Ed25519 signature of the statement bytes.
+ */
+export function signatureEnvelope(entry, hashes, keyId, sign, signedAt) {
+  const statement = Buffer.from(
+    JSON.stringify({
+      type: 'hibi-addon-signature',
+      version: 1,
+      id: entry.id,
+      addonVersion: entry.version,
+      files: Object.fromEntries(
+        Object.entries(hashes).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+      ),
+      signedAt,
+    }),
+  )
+  return `${JSON.stringify(
+    {
+      keyId,
+      statement: statement.toString('base64'),
+      signature: sign(statement).toString('base64'),
+    },
+    null,
+    2,
+  )}\n`
+}
+
+/**
+ * Hibi installs a listing with its signature as hibi-addon.sig.json, replacing
+ * any packaged copy, and applies the package limits again. A pending entry is
+ * measured with the signature the signer would write.
+ */
+function checkSignedLimits(root, entry, { sizes, hashes }, problem) {
+  const signature = problem
+    ? Buffer.byteLength(
+        signatureEnvelope(
+          entry,
+          hashes,
+          '0'.repeat(16),
+          () => Buffer.alloc(64),
+          new Date(0).toISOString(),
+        ),
+      )
+    : readFileSync(join(root, 'signatures', `${entry.id}.json`)).length
+  checkLimits(`${entry.path ?? entry.id} with its Hibi signature`, [
+    ...sizes.filter(([path]) => path !== SIGNATURE_FILE),
+    [SIGNATURE_FILE, signature],
+  ])
 }
 
 function checkPackage(root, entry) {
@@ -663,21 +714,20 @@ export async function inspectDirectory(
       throw new Error(`signatures/${name} does not belong to a catalog entry.`)
   const results = []
   for (const entry of catalog) {
-    let hashes = null
-    if (entry.path) hashes = checkPackage(root, entry)
+    let checked = null
+    if (entry.path) checked = checkPackage(root, entry)
     else if (remote) {
       const files = entry.repository
         ? await repositoryFiles(entry, { fetch: get })
         : await downloadFiles(entry, { fetch: get })
-      hashes = checkFiles(entry.id, entry, [...files.keys()], (path) =>
+      checked = checkFiles(entry.id, entry, [...files.keys()], (path) =>
         files.get(path),
       )
     }
-    results.push({
-      entry,
-      hashes,
-      problem: signatureProblem(root, entry, hashes, keys),
-    })
+    const hashes = checked?.hashes ?? null
+    const problem = signatureProblem(root, entry, hashes, keys)
+    if (checked) checkSignedLimits(root, entry, checked, problem)
+    results.push({ entry, hashes, problem })
   }
   return results
 }
