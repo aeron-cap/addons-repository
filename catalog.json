@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": "hibi-doom",
+    "name": "Doom",
+    "description": "Play the first episode of classic Doom.",
+    "version": "0.4.1",
+    "apiVersion": 2,
+    "kind": "extension",
+    "authors": [{ "displayName": "Hibi Doom contributors" }],
+    "license": "GPL-3.0-only",
+    "homepage": "https://github.com/ralphbibera/hibi-doom",
+    "repository": {
+      "url": "https://github.com/ralphbibera/hibi-doom",
+      "commit": "446296f572ba80ba6290fba864f104412794bca2",
+      "path": "addon"
+    }
+  },
+  {
+    "id": "typing-speed",
+    "name": "Typing speed",
+    "description": "See your estimated words and characters per minute as you type.",
+    "version": "1.1.1",
+    "apiVersion": 2,
+    "kind": "extension",
+    "authors": [{ "discordId": "1262793452236570667", "displayName": "may" }],
+    "license": "GPL-3.0-only",
+    "path": "addons/typing-speed"
+  }
+]

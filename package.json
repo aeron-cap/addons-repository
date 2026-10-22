@@ -1,0 +1,14 @@
+{
+  "name": "hibi-addons-repository",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "check:remote": "node scripts/check.mjs --remote",
+    "test": "node --test"
+  }
+}
