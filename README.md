@@ -27,18 +27,17 @@ npm run check
 npm test
 ```
 
-`npm run check` also verifies each signature in `signatures/` with Hibi's public key and compares it with the files in `addons/`. `npm run check:remote` reads each linked repository folder at its pinned commit and each ZIP file, without running anything from them, and checks every file against the catalog entry and its signature. Pull requests run all three.
+`npm run check` also verifies each signature in `signatures/` with Hibi's public keys and compares it with the files in `addons/`. `npm run check:remote` reads each linked repository folder at its pinned commit and each ZIP file, without running anything from them, and checks every file against the catalog entry and its signature. Add `-- --pending` to either command to report a missing or outdated signature instead of failing; pull requests run them that way because merged entries are signed automatically. An invalid signature always fails.
 
-## Sign an accepted addon
+## How addons are signed
 
-Only maintainers sign, after reviewing the package source and manifest. The private key stays with the maintainer; it is never committed or given to CI.
+Maintainers review each pull request: the package source, its manifest, and the access it asks for. Merging a pull request accepts the entry. The [sign workflow](.github/workflows/sign.yml) then signs every entry whose signature is missing or no longer matches its files, checks the whole directory strictly, and commits the new signatures to `main`. Entries with a valid signature are left unchanged.
 
-1. Put the exact files that will be listed in a folder. For `addons/<id>/`, use that folder. For a repository entry, export the listed folder at the pinned commit without running scripts, for example `git archive <commit> <folder> | tar -x -C <empty folder>`. For a download entry, extract the ZIP file.
-2. From a [Hibi](https://github.com/schmayterling/hibi) checkout, run `node scripts/addon-signing.mjs sign <folder> --key <private key>`. It writes `hibi-addon.sig.json` in that folder.
-3. Copy that file to `signatures/<id>.json` and commit it with the catalog entry.
-4. Run `npm run check` and `npm run check:remote`. They fail if the signature does not match the listed files exactly.
+The workflow signs with the directory's own key, which Hibi trusts for addon packages. That private key exists only as a secret of the `addon-signing` environment, which runs only on `main`. The job that holds it can read the repository but not change it; a separate job without the key commits only files in `signatures/` and `hibi-addon.sig.json`. Pull requests, including those from forks, never receive the key. Nothing from a listed package runs at any step. The directory workflow never receives or uses Hibi's offline root private key.
 
-Merging the pull request publishes the addon. A new version needs a new signature.
+To sign one entry again even though its signature is valid, run the sign workflow on `main` from the Actions tab and enter its id.
+
+Maintainers can also sign by hand with `node scripts/addon-signing.mjs sign <folder> --key <private key>` from a [Hibi](https://github.com/schmayterling/hibi) checkout, then copy the resulting `hibi-addon.sig.json` to `signatures/<id>.json`. `npm run check` and `npm run check:remote` fail if a signature does not match the listed files exactly.
 
 ## License
 

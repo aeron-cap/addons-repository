@@ -59,10 +59,12 @@ const SHA256 = /^[0-9a-f]{64}$/
 const GITHUB_REPOSITORY =
   /^https:\/\/github\.com\/[A-Za-z\d_.-]+\/[A-Za-z\d_.-]+\/?$/
 const AUTHOR_KEYS = ['displayName', 'github', 'discordId', 'role']
-// Public Hibi signing keys, copied from ADDON_TRUST_KEYS in Hibi's
-// src/shared/addon-trust.ts. Only public keys belong here.
+// Public keys whose signatures Hibi accepts for addon packages, copied from
+// Hibi's src/shared/addon-trust.ts: the offline root key and the directory's
+// CI signing key. Only public keys belong here.
 const TRUST_KEYS = {
   '1b43eadedb48d51d': 'JZEDarSlRAFAdC9WC++vLgpLVWI8pi9yBG8Wm73/S1w=',
+  '8dc7673025d00464': '+COFs2NeRFH27glN2PuJsyAHuMur86WTJT6HoaQliqY=',
 }
 const SIGNATURE_FILE = 'hibi-addon.sig.json'
 
@@ -304,8 +306,11 @@ function checkPackage(root, entry) {
     files(folder),
     (path) => readFileSync(join(folder, path)),
     (path) =>
+      // Parsing only; the child gets no tokens or keys from this environment.
       execFileSync(process.execPath, ['--check', join(folder, path)], {
         stdio: 'pipe',
+        env: { PATH: process.env.PATH },
+        timeout: 10_000,
       }),
   )
 }
@@ -316,62 +321,20 @@ const canonical = (value) => {
   return bytes.toString('base64') === value ? bytes : null
 }
 
-/** Verifies an envelope the way Hibi does and returns its signed file hashes. */
-function signedFiles(label, envelope, entry) {
-  const raw =
-    typeof envelope?.keyId === 'string' &&
-    Object.hasOwn(TRUST_KEYS, envelope.keyId)
-      ? canonical(TRUST_KEYS[envelope.keyId])
-      : null
-  if (!raw || raw.length !== 32)
-    throw new Error(`${label} is not signed with a Hibi key.`)
-  const bytes = canonical(envelope.statement)
-  const signature = canonical(envelope.signature)
-  const key = createPublicKey({
-    format: 'jwk',
-    key: { kty: 'OKP', crv: 'Ed25519', x: raw.toString('base64url') },
-  })
-  if (
-    !bytes ||
-    signature?.length !== 64 ||
-    !verify(null, bytes, key, signature)
-  )
-    throw new Error(`${label} has an invalid signature.`)
-  const statement = JSON.parse(bytes.toString('utf8'))
-  if (
-    statement?.type !== 'hibi-addon-signature' ||
-    statement.version !== 1 ||
-    statement.id !== entry.id ||
-    statement.addonVersion !== entry.version ||
-    typeof statement.signedAt !== 'string' ||
-    !Number.isFinite(Date.parse(statement.signedAt)) ||
-    !statement.files ||
-    typeof statement.files !== 'object' ||
-    Array.isArray(statement.files)
-  )
-    throw new Error(`${label} does not sign ${entry.id} ${entry.version}.`)
-  return statement.files
-}
-
-function sameFiles(label, signed, hashes) {
-  const paths = Object.keys(hashes)
-  if (
-    Object.keys(signed).length !== paths.length ||
-    paths.some(
-      (path) => !Object.hasOwn(signed, path) || signed[path] !== hashes[path],
-    )
-  )
-    throw new Error(`${label}: the files do not match the signature.`)
-}
-
 /** Reads at most `limit` bytes so a hostile link cannot exhaust CI. */
-async function fetchBytes(url, limit, { fetch: get = fetch, headers } = {}) {
+async function fetchBytes(
+  url,
+  limit,
+  { fetch: get = fetch, headers, redirect = 'error' } = {},
+) {
   const response = await get(url, {
-    redirect: 'follow',
+    redirect,
     headers,
     signal: AbortSignal.timeout(60_000),
   })
   if (!response.ok) throw new Error(`${url} returned ${response.status}.`)
+  if (response.url && new URL(response.url).protocol !== 'https:')
+    throw new Error(`${url} redirected away from HTTPS.`)
   const chunks = []
   let size = 0
   for await (const chunk of response.body ?? []) {
@@ -564,7 +527,11 @@ function zipFiles(label, zip) {
 }
 
 async function downloadFiles(entry, options) {
-  const zip = await fetchBytes(entry.download.url, entry.download.size, options)
+  // Release assets redirect to a CDN; the final address must still be HTTPS.
+  const zip = await fetchBytes(entry.download.url, entry.download.size, {
+    ...options,
+    redirect: 'follow',
+  })
   if (zip.length !== entry.download.size)
     throw new Error(
       `${entry.id}: the download is ${zip.length} bytes, not ${entry.download.size}.`,
@@ -585,10 +552,86 @@ async function downloadFiles(entry, options) {
   )
 }
 
-/** Returns the catalog after checking it, every nested package, and every signature. */
-export async function checkDirectory(
+/**
+ * Verifies an envelope's key and Ed25519 signature the way Hibi does and
+ * returns its statement. A forged or malformed envelope always fails.
+ */
+function verifiedStatement(label, envelope, keys) {
+  const raw =
+    typeof envelope?.keyId === 'string' && Object.hasOwn(keys, envelope.keyId)
+      ? canonical(keys[envelope.keyId])
+      : null
+  if (!raw || raw.length !== 32)
+    throw new Error(`${label} is not signed with a Hibi key.`)
+  const bytes = canonical(envelope.statement)
+  const signature = canonical(envelope.signature)
+  const key = createPublicKey({
+    format: 'jwk',
+    key: { kty: 'OKP', crv: 'Ed25519', x: raw.toString('base64url') },
+  })
+  if (
+    !bytes ||
+    signature?.length !== 64 ||
+    !verify(null, bytes, key, signature)
+  )
+    throw new Error(`${label} has an invalid signature.`)
+  const statement = JSON.parse(bytes.toString('utf8'))
+  if (
+    statement?.type !== 'hibi-addon-signature' ||
+    statement.version !== 1 ||
+    typeof statement.id !== 'string' ||
+    typeof statement.addonVersion !== 'string' ||
+    typeof statement.signedAt !== 'string' ||
+    !Number.isFinite(Date.parse(statement.signedAt)) ||
+    !statement.files ||
+    typeof statement.files !== 'object' ||
+    Array.isArray(statement.files)
+  )
+    throw new Error(`${label} is not a Hibi addon signature.`)
+  return statement
+}
+
+function sameFiles(signed, hashes) {
+  const paths = Object.keys(hashes)
+  return (
+    Object.keys(signed).length === paths.length &&
+    paths.every(
+      (path) => Object.hasOwn(signed, path) && signed[path] === hashes[path],
+    )
+  )
+}
+
+/**
+ * Returns why an entry's signature does not cover it yet, or null when it
+ * does. Missing or outdated signatures are reported; invalid ones throw.
+ */
+function signatureProblem(root, entry, hashes, keys) {
+  const file = `signatures/${entry.id}.json`
+  if (!existsSync(join(root, file)))
+    return `${entry.id} needs a Hibi signature in ${file}.`
+  const bytes = readFileSync(join(root, file))
+  // Hibi reads a signature like any package file, up to 5 MiB.
+  if (bytes.length > MAX_ADDON_FILE_BYTES)
+    throw new Error(`${file} is larger than 5 MiB.`)
+  const statement = verifiedStatement(file, JSON.parse(bytes), keys)
+  if (statement.id !== entry.id || statement.addonVersion !== entry.version)
+    return `${file} does not sign ${entry.id} ${entry.version}.`
+  if (hashes && !sameFiles(statement.files, hashes))
+    return `${entry.path ?? entry.id}: the files do not match the signature.`
+  const own = entry.path && join(root, entry.path, SIGNATURE_FILE)
+  if (own && existsSync(own) && !readFileSync(own).equals(bytes))
+    return `${entry.path}/${SIGNATURE_FILE} must match ${file}.`
+  return null
+}
+
+/**
+ * Checks the catalog and every package, and reports each entry's signature
+ * state. Without `remote`, linked repositories and downloads are not read, so
+ * only their signed id and version are compared.
+ */
+export async function inspectDirectory(
   root,
-  { remote = false, fetch: get } = {},
+  { remote = false, fetch: get, keys = TRUST_KEYS } = {},
 ) {
   const source = readFileSync(join(root, 'catalog.json'))
   if (source.length > MAX_CATALOG_BYTES)
@@ -618,52 +661,60 @@ export async function checkDirectory(
   for (const name of signatures)
     if (!ids.some((id) => name === `${id}.json`))
       throw new Error(`signatures/${name} does not belong to a catalog entry.`)
-  const signed = new Map()
+  const results = []
   for (const entry of catalog) {
-    const hashes = entry.path && checkPackage(root, entry)
-    const file = `signatures/${entry.id}.json`
-    if (!signatures.includes(`${entry.id}.json`))
-      throw new Error(`${entry.id} needs a Hibi signature in ${file}.`)
-    const bytes = readFileSync(join(root, file))
-    // Hibi reads a signature like any package file, up to 5 MiB.
-    if (bytes.length > MAX_ADDON_FILE_BYTES)
-      throw new Error(`${file} is larger than 5 MiB.`)
-    signed.set(entry.id, signedFiles(file, JSON.parse(bytes), entry))
-    if (!entry.path) continue
-    sameFiles(entry.path, signed.get(entry.id), hashes)
-    const own = join(root, entry.path, SIGNATURE_FILE)
-    if (existsSync(own) && !readFileSync(own).equals(bytes))
-      throw new Error(`${entry.path}/${SIGNATURE_FILE} must match ${file}.`)
-  }
-  if (remote)
-    for (const entry of catalog) {
-      if (entry.path) continue
+    let hashes = null
+    if (entry.path) hashes = checkPackage(root, entry)
+    else if (remote) {
       const files = entry.repository
         ? await repositoryFiles(entry, { fetch: get })
         : await downloadFiles(entry, { fetch: get })
-      sameFiles(
-        entry.id,
-        signed.get(entry.id),
-        checkFiles(entry.id, entry, [...files.keys()], (path) =>
-          files.get(path),
-        ),
+      hashes = checkFiles(entry.id, entry, [...files.keys()], (path) =>
+        files.get(path),
       )
     }
-  return catalog
+    results.push({
+      entry,
+      hashes,
+      problem: signatureProblem(root, entry, hashes, keys),
+    })
+  }
+  return results
 }
+
+/**
+ * Returns the catalog after checking it. With `pending`, entries whose
+ * signature is missing or outdated pass, so pull requests can wait for the
+ * signature that is added after they merge.
+ */
+export async function checkDirectory(root, options = {}) {
+  const results = await inspectDirectory(root, options)
+  const problem = results.find((result) => result.problem)?.problem
+  if (problem && !options.pending) throw new Error(problem)
+  return results.map((result) => result.entry)
+}
+
+export { TRUST_KEYS }
 
 if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const root = fileURLToPath(new URL('..', import.meta.url))
+  const pending = process.argv.includes('--pending')
   try {
-    for (const entry of await checkDirectory(root, {
+    const results = await inspectDirectory(root, {
       remote: process.argv.includes('--remote'),
-    }))
-      console.log(
-        `ok ${entry.id} ${entry.version} (${SOURCES.find((key) => entry[key])})`,
-      )
+    })
+    for (const { entry, problem } of results) {
+      const source = SOURCES.find((key) => entry[key])
+      if (!problem) console.log(`ok ${entry.id} ${entry.version} (${source})`)
+      else if (pending)
+        console.log(
+          `pending ${entry.id} ${entry.version} (${source}): ${problem} It is signed after it merges.`,
+        )
+      else throw new Error(problem)
+    }
   } catch (error) {
     console.error(error.stderr?.toString() || error.message)
     process.exitCode = 1

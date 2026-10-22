@@ -1,0 +1,105 @@
+name: sign
+
+# Signs merged listings with the directory's CI key. The sign job holds the
+# key and can only read the repository; the commit job can push to main but
+# never sees the key. Pushes made with GITHUB_TOKEN do not start workflows,
+# and entries with a valid signature are skipped, so a run never repeats itself.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      resign_id:
+        description: Catalog entry id to sign again even if its signature is valid
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: addon-signing
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.repository == 'hibigarden/addons-repository' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: addon-signing
+    outputs:
+      commit: ${{ steps.head.outputs.commit }}
+      signed: ${{ steps.sign.outputs.signed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - id: head
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # Reads linked packages without running them, signs what changed, then
+      # checks the whole directory strictly.
+      - id: sign
+        run: node scripts/sign.mjs
+        env:
+          HIBI_ADDON_SIGNING_KEY: ${{ secrets.HIBI_ADDON_SIGNING_KEY }}
+          RESIGN_ID: ${{ inputs.resign_id }}
+          GITHUB_TOKEN: ${{ github.token }}
+      - if: steps.sign.outputs.signed != ''
+        run: |
+          git add -A signatures addons
+          git diff --cached --binary > signatures.patch
+      - if: steps.sign.outputs.signed != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: signatures
+          path: signatures.patch
+          retention-days: 1
+
+  commit:
+    needs: sign
+    if: needs.sign.outputs.signed != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.sign.outputs.commit }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: signatures
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Commit only signature files
+        env:
+          SIGNED: ${{ needs.sign.outputs.signed }}
+        run: |
+          git apply --index signatures.patch
+          rm signatures.patch
+          # Only added or modified regular files at signature paths may change.
+          git diff --cached --raw --no-renames --abbrev=40 > changes.txt
+          if [ ! -s changes.txt ] || grep -Pv '^:(100644 100644 [0-9a-f]{40} [0-9a-f]{40} M|000000 100644 0{40} [0-9a-f]{40} A)\t(signatures/[a-z][a-z0-9-]*\.json|addons/[a-z][a-z0-9-]*/hibi-addon\.sig\.json)$' changes.txt; then
+            echo "The signing job may only add or update signature files." >&2
+            exit 1
+          fi
+          rm changes.txt
+          npm run check
+          git -c user.name=schmayterling -c user.email=ryana@ryanaque.com \
+            commit -m "chore(signatures): sign ${SIGNED}"
+      # A plain push only fast-forwards. If main moved, the run started by that
+      # push signs the newer tree after this one finishes.
+      - run: |
+          if ! git push origin HEAD:refs/heads/main; then
+            git fetch origin main
+            if [ "$(git rev-parse origin/main)" != "${{ needs.sign.outputs.commit }}" ]; then
+              echo "::notice::main moved while signing; its own sign run covers the newer tree."
+              exit 0
+            fi
+            exit 1
+          fi

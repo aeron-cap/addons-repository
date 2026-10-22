@@ -137,7 +137,9 @@ function fakeGitHub(files, { tamper } = {}) {
       commit,
       path: 'pkg',
     },
-    fetch: async (url) => {
+    fetch: async (url, init) => {
+      // GitHub reads never follow redirects.
+      assert.equal(init.redirect, 'error')
       if (url.startsWith('https://api.github.com/'))
         return new Response(JSON.stringify(tree))
       const name = url.split(`/${commit}/pkg/`)[1]
@@ -313,5 +315,41 @@ test('remote checks refuse ZIP files Hibi would refuse before inflating them', a
       ['typing-speed/A.js', Buffer.from('')],
     ]),
     /conflicts with another entry/,
+  )
+})
+
+test('downloads may redirect only to HTTPS addresses', async (t) => {
+  const { path, ...metadata } = typing
+  const zip = storedZip(
+    typingFiles.map(([name, bytes]) => [`typing-speed/${name}`, bytes]),
+  )
+  const directory = scratch(t, [], { addons: false })
+  rmSync(join(directory, 'signatures/hibi-doom.json'))
+  writeFileSync(
+    join(directory, 'catalog.json'),
+    JSON.stringify([
+      {
+        ...metadata,
+        download: {
+          url: 'https://example.com/typing-speed.zip',
+          size: zip.length,
+          sha256: createHash('sha256').update(zip).digest('hex'),
+        },
+      },
+    ]),
+  )
+  await assert.rejects(
+    checkDirectory(directory, {
+      remote: true,
+      fetch: async (_url, init) => {
+        assert.equal(init.redirect, 'follow')
+        return {
+          ok: true,
+          url: 'http://example.com/typing-speed.zip',
+          body: [zip],
+        }
+      },
+    }),
+    /redirected away from HTTPS/,
   )
 })

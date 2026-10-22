@@ -23,8 +23,10 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      - run: npm run check
+      # Merged entries are signed by the sign workflow, so a missing or outdated
+      # signature is reported here instead of failing. Invalid signatures fail.
+      - run: npm run check -- --pending
       - run: npm test
-      - run: npm run check:remote
+      - run: npm run check:remote -- --pending
         env:
           GITHUB_TOKEN: ${{ github.token }}
