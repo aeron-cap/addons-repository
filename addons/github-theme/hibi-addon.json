@@ -1,0 +1,109 @@
+{
+  "id": "github-theme",
+  "name": "github theme",
+  "description": "github's default light and dark editor palettes.",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "kind": "theme",
+  "authors": [
+    {
+      "displayName": "schmayterling",
+      "github": "schmayterling"
+    }
+  ],
+  "defaultEnabled": false,
+  "themes": [
+    {
+      "id": "light",
+      "name": "github light",
+      "appearance": "light",
+      "author": "primer and github; hibi port by schmayterling",
+      "license": {
+        "name": "MIT",
+        "text": "MIT License\n\nCopyright (c) 2020 Primer\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\nThe MIT License (MIT)\n\nCopyright (c) 2018 GitHub Inc.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+        "source": "https://github.com/primer/github-vscode-theme/blob/cd78e5e4e7bcf132a6f428ae0f32264bb1b729cf/LICENSE"
+      },
+      "colors": {
+        "background": "#ffffff",
+        "surface": "#ffffff",
+        "sidebar": "#f6f8fa",
+        "ink": "#1f2328",
+        "muted": "#636b74",
+        "accent": "#0969da",
+        "border": "#d0d7de",
+        "hover": "#eaeef280",
+        "active": "#afb8c133",
+        "selection": "#0969da33",
+        "selection-ink": "#1f2328",
+        "caret": "#0969da",
+        "code-background": "#f6f8fa",
+        "code-ink": "#1f2328",
+        "syntax-heading": "#0550ae",
+        "syntax-link": "#0969da",
+        "syntax-code": "#0a3069",
+        "syntax-meta": "#0550ae",
+        "syntax-quote": "#656d76",
+        "syntax-strong": "#24292f",
+        "syntax-emphasis": "#24292f",
+        "syntax-keyword": "#cf222e",
+        "syntax-string": "#0a3069",
+        "syntax-number": "#0550ae",
+        "syntax-comment": "#6b737d",
+        "syntax-type": "#116329",
+        "syntax-function": "#8250df",
+        "syntax-variable": "#953800",
+        "syntax-operator": "#1f2328",
+        "status-success": "#197a35",
+        "status-warning": "#8f6000",
+        "status-danger": "#cd222e",
+        "status-info": "#0966d3"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "github dark",
+      "appearance": "dark",
+      "author": "primer and github; hibi port by schmayterling",
+      "license": {
+        "name": "MIT",
+        "text": "MIT License\n\nCopyright (c) 2020 Primer\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\nThe MIT License (MIT)\n\nCopyright (c) 2018 GitHub Inc.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+        "source": "https://github.com/primer/github-vscode-theme/blob/cd78e5e4e7bcf132a6f428ae0f32264bb1b729cf/LICENSE"
+      },
+      "colors": {
+        "background": "#0d1117",
+        "surface": "#161b22",
+        "sidebar": "#010409",
+        "ink": "#e6edf3",
+        "muted": "#a4aab1",
+        "accent": "#3987f7",
+        "border": "#30363d",
+        "hover": "#6e76811a",
+        "active": "#6e768166",
+        "selection": "#2f81f733",
+        "selection-ink": "#e6edf3",
+        "caret": "#2f81f7",
+        "code-background": "#161b22",
+        "code-ink": "#e6edf3",
+        "syntax-heading": "#3a80ed",
+        "syntax-link": "#2f81f7",
+        "syntax-code": "#a5d6ff",
+        "syntax-meta": "#79c0ff",
+        "syntax-quote": "#7d8590",
+        "syntax-strong": "#c9d1d9",
+        "syntax-emphasis": "#c9d1d9",
+        "syntax-keyword": "#ff7b72",
+        "syntax-string": "#a5d6ff",
+        "syntax-number": "#79c0ff",
+        "syntax-comment": "#8b949e",
+        "syntax-type": "#7ee787",
+        "syntax-function": "#d2a8ff",
+        "syntax-variable": "#ffa657",
+        "syntax-operator": "#e6edf3",
+        "status-success": "#4ebf5e",
+        "status-warning": "#d6a134",
+        "status-danger": "#fa8983",
+        "status-info": "#74abfa"
+      }
+    }
+  ]
+}

@@ -1,5 +1,39 @@
 [
   {
+    "id": "dracula",
+    "name": "dracula",
+    "description": "the classic purple-accented dracula dark palette.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "theme",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/dracula/visual-studio-code",
+    "path": "addons/dracula"
+  },
+  {
+    "id": "everforest-light",
+    "name": "everforest light",
+    "description": "soft, medium, and hard pastel light palettes with sage-green accents.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "theme",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/sainnhe/everforest",
+    "path": "addons/everforest-light"
+  },
+  {
     "id": "fatass-horse",
     "name": "fatass horse",
     "description": "a horse that follows your mouse cursor and fades when nearby.",
@@ -14,6 +48,23 @@
     ],
     "license": "MIT",
     "path": "addons/fatass-horse"
+  },
+  {
+    "id": "github-theme",
+    "name": "github theme",
+    "description": "github's default light and dark editor palettes.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "theme",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/primer/github-vscode-theme",
+    "path": "addons/github-theme"
   },
   {
     "id": "hibi-doom",
@@ -32,6 +83,23 @@
     }
   },
   {
+    "id": "one-dark-pro",
+    "name": "one dark pro",
+    "description": "atom-inspired dark colors with one dark pro syntax highlighting.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "theme",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/Binaryify/OneDark-Pro",
+    "path": "addons/one-dark-pro"
+  },
+  {
     "id": "oneko",
     "name": "oneko",
     "description": "a pixel cat that follows your mouse cursor.",
@@ -46,6 +114,40 @@
     ],
     "license": "MIT",
     "path": "addons/oneko"
+  },
+  {
+    "id": "rose-pine-dawn",
+    "name": "rosé pine dawn",
+    "description": "a pastel light palette with warm paper, rose, and lilac colors.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "theme",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/rose-pine/neovim",
+    "path": "addons/rose-pine-dawn"
+  },
+  {
+    "id": "tokyo-night",
+    "name": "tokyo night",
+    "description": "tokyo night, storm, and light editor palettes.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "theme",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/tokyo-night/tokyo-night-vscode-theme",
+    "path": "addons/tokyo-night"
   },
   {
     "id": "typing-speed",

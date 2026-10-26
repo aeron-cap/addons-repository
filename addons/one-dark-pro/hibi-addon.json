@@ -1,0 +1,63 @@
+{
+  "id": "one-dark-pro",
+  "name": "one dark pro",
+  "description": "atom-inspired dark colors with one dark pro syntax highlighting.",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "kind": "theme",
+  "authors": [
+    {
+      "displayName": "schmayterling",
+      "github": "schmayterling"
+    }
+  ],
+  "defaultEnabled": false,
+  "themes": [
+    {
+      "id": "dark",
+      "name": "one dark pro",
+      "appearance": "dark",
+      "author": "binaryify; hibi port by schmayterling",
+      "license": {
+        "name": "MIT",
+        "text": "The MIT License (MIT)\n\nCopyright (c) 2013-2022 Binaryify\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in\nall copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\nTHE SOFTWARE.",
+        "source": "https://github.com/Binaryify/OneDark-Pro/blob/ce79c5f7116607d635e06b7ef4413d85a77905e4/LICENSE.txt"
+      },
+      "colors": {
+        "background": "#282c34",
+        "surface": "#21252b",
+        "sidebar": "#21252b",
+        "ink": "#abb2bf",
+        "muted": "#9da5b4",
+        "accent": "#61afef",
+        "border": "#3e4452",
+        "hover": "#2c313a",
+        "active": "#323842",
+        "selection": "#67769660",
+        "selection-ink": "#b7bdc8",
+        "caret": "#528bff",
+        "code-background": "#2e3440",
+        "code-ink": "#abb2bf",
+        "syntax-heading": "#e47e86",
+        "syntax-link": "#61afef",
+        "syntax-code": "#98c379",
+        "syntax-meta": "#d19a66",
+        "syntax-quote": "#999da5",
+        "syntax-strong": "#abb2bf",
+        "syntax-emphasis": "#abb2bf",
+        "syntax-keyword": "#c97fdf",
+        "syntax-string": "#98c379",
+        "syntax-number": "#d19a66",
+        "syntax-comment": "#999da5",
+        "syntax-type": "#e5c07b",
+        "syntax-function": "#61afef",
+        "syntax-variable": "#e47e86",
+        "syntax-operator": "#abb2bf",
+        "status-success": "#98c379",
+        "status-warning": "#d19a66",
+        "status-danger": "#ff747f",
+        "status-info": "#61afef"
+      }
+    }
+  ]
+}

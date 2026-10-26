@@ -40,7 +40,18 @@ function scratch(t, entries) {
 test('the catalog and nested packages are valid', async () => {
   assert.deepEqual(
     (await checkDirectory(root, { pending: true })).map((entry) => entry.id),
-    ['fatass-horse', 'hibi-doom', 'oneko', 'typing-speed'],
+    [
+      'dracula',
+      'everforest-light',
+      'fatass-horse',
+      'github-theme',
+      'hibi-doom',
+      'one-dark-pro',
+      'oneko',
+      'rose-pine-dawn',
+      'tokyo-night',
+      'typing-speed',
+    ],
   )
 })
 

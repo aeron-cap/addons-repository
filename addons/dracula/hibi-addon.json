@@ -1,0 +1,63 @@
+{
+  "id": "dracula",
+  "name": "dracula",
+  "description": "the classic purple-accented dracula dark palette.",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "kind": "theme",
+  "authors": [
+    {
+      "displayName": "schmayterling",
+      "github": "schmayterling"
+    }
+  ],
+  "defaultEnabled": false,
+  "themes": [
+    {
+      "id": "dark",
+      "name": "dracula",
+      "appearance": "dark",
+      "author": "dracula theme; hibi port by schmayterling",
+      "license": {
+        "name": "MIT",
+        "text": "The MIT License (MIT)\n\nCopyright (c) 2016 Dracula Theme\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+        "source": "https://github.com/dracula/visual-studio-code/blob/b50e62e320906d5f57a8bf05fd6ddf23b890d6dd/LICENSE"
+      },
+      "colors": {
+        "background": "#282a36",
+        "surface": "#343746",
+        "sidebar": "#21222c",
+        "ink": "#f8f8f2",
+        "muted": "#adb6d0",
+        "accent": "#bd93f9",
+        "border": "#424450",
+        "hover": "#424450",
+        "active": "#44475a",
+        "selection": "#44475a",
+        "selection-ink": "#f8f8f2",
+        "caret": "#f8f8f2",
+        "code-background": "#21222c",
+        "code-ink": "#f8f8f2",
+        "syntax-heading": "#bd93f9",
+        "syntax-link": "#8be9fd",
+        "syntax-code": "#50fa7b",
+        "syntax-meta": "#bd93f9",
+        "syntax-quote": "#8390b7",
+        "syntax-strong": "#f8f8f2",
+        "syntax-emphasis": "#f8f8f2",
+        "syntax-keyword": "#ff79c6",
+        "syntax-string": "#f1fa8c",
+        "syntax-number": "#bd93f9",
+        "syntax-comment": "#8390b7",
+        "syntax-type": "#8be9fd",
+        "syntax-function": "#50fa7b",
+        "syntax-variable": "#f8f8f2",
+        "syntax-operator": "#ff79c6",
+        "status-success": "#50fa7b",
+        "status-warning": "#ffb86c",
+        "status-danger": "#ff9b9b",
+        "status-info": "#8be9fd"
+      }
+    }
+  ]
+}

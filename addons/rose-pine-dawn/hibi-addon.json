@@ -1,0 +1,63 @@
+{
+  "id": "rose-pine-dawn",
+  "name": "rosé pine dawn",
+  "description": "a pastel light palette with warm paper, rose, and lilac colors.",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "kind": "theme",
+  "authors": [
+    {
+      "displayName": "schmayterling",
+      "github": "schmayterling"
+    }
+  ],
+  "defaultEnabled": false,
+  "themes": [
+    {
+      "id": "dawn",
+      "name": "rosé pine dawn",
+      "appearance": "light",
+      "author": "rosé pine; hibi port by schmayterling",
+      "license": {
+        "name": "MIT",
+        "text": "MIT License\n\nCopyright (c) 2023 Rosé Pine\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+        "source": "https://github.com/rose-pine/neovim/blob/ff483051a47e27d84bdef47703538df1ed9f4a47/LICENSE"
+      },
+      "colors": {
+        "background": "#faf4ed",
+        "surface": "#fffaf3",
+        "sidebar": "#f2e9e1",
+        "ink": "#464261",
+        "muted": "#605c74",
+        "accent": "#736287",
+        "border": "#dfdad9",
+        "hover": "#f4ede8",
+        "active": "#dfdad9",
+        "selection": "#dfdad9",
+        "selection-ink": "#464261",
+        "caret": "#bd726f",
+        "code-background": "#f2e9e1",
+        "code-ink": "#464261",
+        "syntax-heading": "#736287",
+        "syntax-link": "#286983",
+        "syntax-code": "#945a57",
+        "syntax-meta": "#417079",
+        "syntax-quote": "#6a6781",
+        "syntax-strong": "#995468",
+        "syntax-emphasis": "#736287",
+        "syntax-keyword": "#286983",
+        "syntax-string": "#8f6020",
+        "syntax-number": "#945a57",
+        "syntax-comment": "#6c6875",
+        "syntax-type": "#417079",
+        "syntax-function": "#995468",
+        "syntax-variable": "#464261",
+        "syntax-operator": "#286983",
+        "status-success": "#276780",
+        "status-warning": "#81561d",
+        "status-danger": "#8c4d5f",
+        "status-info": "#3b666e"
+      }
+    }
+  ]
+}
