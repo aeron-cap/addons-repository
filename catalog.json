@@ -1,5 +1,21 @@
 [
   {
+    "id": "fatass-horse",
+    "name": "fatass horse",
+    "description": "a horse that follows your mouse cursor and fades when nearby.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "extension",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "path": "addons/fatass-horse"
+  },
+  {
     "id": "hibi-doom",
     "name": "Doom",
     "description": "Play the first episode of classic Doom.",
@@ -14,6 +30,22 @@
       "commit": "446296f572ba80ba6290fba864f104412794bca2",
       "path": "addon"
     }
+  },
+  {
+    "id": "oneko",
+    "name": "oneko",
+    "description": "a pixel cat that follows your mouse cursor.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "extension",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "path": "addons/oneko"
   },
   {
     "id": "typing-speed",

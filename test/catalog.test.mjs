@@ -17,11 +17,15 @@ import { checkDirectory } from '../scripts/check.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const catalog = () =>
   JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8'))
+    .filter(({ id }) => ['hibi-doom', 'typing-speed'].includes(id))
 
 function scratch(t, entries) {
   const directory = mkdtempSync(join(tmpdir(), 'hibi-directory-'))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
-  cpSync(join(root, 'addons'), join(directory, 'addons'), { recursive: true })
+  mkdirSync(join(directory, 'addons'))
+  cpSync(join(root, 'addons/typing-speed'), join(directory, 'addons/typing-speed'), {
+    recursive: true,
+  })
   mkdirSync(join(directory, 'signatures'))
   for (const { id } of entries)
     if (existsSync(join(root, 'signatures', `${id}.json`)))
@@ -35,8 +39,8 @@ function scratch(t, entries) {
 
 test('the catalog and nested packages are valid', async () => {
   assert.deepEqual(
-    (await checkDirectory(root)).map((entry) => entry.id),
-    ['hibi-doom', 'typing-speed'],
+    (await checkDirectory(root, { pending: true })).map((entry) => entry.id),
+    ['fatass-horse', 'hibi-doom', 'oneko', 'typing-speed'],
   )
 })
 

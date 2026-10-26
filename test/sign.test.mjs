@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash, generateKeyPairSync } from 'node:crypto'
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -42,7 +43,10 @@ const key = signingKey(pem, keys)
 function scratch(t) {
   const directory = mkdtempSync(join(tmpdir(), 'hibi-sign-'))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
-  cpSync(join(root, 'addons'), join(directory, 'addons'), { recursive: true })
+  mkdirSync(join(directory, 'addons'))
+  cpSync(join(root, 'addons/typing-speed'), join(directory, 'addons/typing-speed'), {
+    recursive: true,
+  })
   cpSync(
     join(root, 'signatures/typing-speed.json'),
     join(directory, 'signatures/typing-speed.json'),

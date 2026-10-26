@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -18,7 +19,7 @@ import { checkDirectory } from '../scripts/check.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const [doom, typing] = JSON.parse(
   readFileSync(join(root, 'catalog.json'), 'utf8'),
-)
+).filter(({ id }) => ['hibi-doom', 'typing-speed'].includes(id))
 const typingFolder = join(root, 'addons/typing-speed')
 const typingFiles = readdirSync(typingFolder)
   .filter((name) => name !== 'hibi-addon.sig.json')
@@ -27,11 +28,15 @@ const typingFiles = readdirSync(typingFolder)
 function scratch(t, entries, { addons = true } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'hibi-signatures-'))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
-  if (addons)
-    cpSync(join(root, 'addons'), join(directory, 'addons'), { recursive: true })
-  cpSync(join(root, 'signatures'), join(directory, 'signatures'), {
-    recursive: true,
-  })
+  if (addons) {
+    mkdirSync(join(directory, 'addons'))
+    cpSync(join(root, 'addons/typing-speed'), join(directory, 'addons/typing-speed'), {
+      recursive: true,
+    })
+  }
+  mkdirSync(join(directory, 'signatures'))
+  for (const id of ['hibi-doom', 'typing-speed'])
+    cpSync(join(root, 'signatures', `${id}.json`), join(directory, 'signatures', `${id}.json`))
   writeFileSync(join(directory, 'catalog.json'), JSON.stringify(entries))
   return directory
 }
