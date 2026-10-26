@@ -50,6 +50,23 @@
     "path": "addons/fatass-horse"
   },
   {
+    "id": "fnaf-jumpscare",
+    "name": "fnaf jumpscare",
+    "description": "a random fredbear jumpscare with sound and flashing static.",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "kind": "extension",
+    "authors": [
+      {
+        "displayName": "schmayterling",
+        "github": "schmayterling"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/schmayterling/fnaf-jumpscare",
+    "path": "addons/fnaf-jumpscare"
+  },
+  {
     "id": "github-theme",
     "name": "github theme",
     "description": "github's default light and dark editor palettes.",

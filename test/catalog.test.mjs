@@ -44,6 +44,7 @@ test('the catalog and nested packages are valid', async () => {
       'dracula',
       'everforest-light',
       'fatass-horse',
+      'fnaf-jumpscare',
       'github-theme',
       'hibi-doom',
       'one-dark-pro',
