@@ -66,6 +66,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    outputs:
+      published: ${{ steps.push.outputs.published }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -94,7 +96,8 @@ jobs:
             commit -m "chore(signatures): sign ${SIGNED}"
       # A plain push only fast-forwards. If main moved, the run started by that
       # push signs the newer tree after this one finishes.
-      - run: |
+      - id: push
+        run: |
           if ! git push origin HEAD:refs/heads/main; then
             git fetch origin main
             if [ "$(git rev-parse origin/main)" != "${{ needs.sign.outputs.commit }}" ]; then
@@ -103,3 +106,67 @@ jobs:
             fi
             exit 1
           fi
+          echo "published=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  notify:
+    needs: [sign, commit]
+    if: >-
+      always() && !cancelled() &&
+      github.repository == 'hibigarden/addons-repository' &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push' &&
+      needs.sign.result == 'success' &&
+      ((needs.commit.result == 'success' && needs.commit.outputs.published != '') ||
+       (needs.commit.result == 'skipped' && needs.sign.outputs.signed == ''))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      published: ${{ steps.prepare.outputs.published }}
+      delivered: ${{ steps.send.outputs.delivered }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.commit.outputs.published || needs.sign.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # Compare the last delivered snapshot, including already-signed packages
+      # merged in pushes whose pending runs were replaced by newer ones.
+      - name: Validate published packages and prepare announcements
+        id: prepare
+        run: node scripts/announce.mjs prepare
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      # This step has no signing key or repository write permission. Keeping it
+      # in this workflow avoids GITHUB_TOKEN's suppression of push-triggered runs.
+      - name: Announce addons
+        id: send
+        run: node scripts/announce.mjs send
+        env:
+          HIBI_ADDONS_WEBHOOK_URL: ${{ secrets.HIBI_ADDONS_WEBHOOK_URL }}
+
+  checkpoint:
+    needs: notify
+    if: >-
+      !cancelled() && needs.notify.result == 'success' &&
+      needs.notify.outputs.delivered == 'true' &&
+      github.repository == 'hibigarden/addons-repository' &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.notify.outputs.published }}
+          fetch-depth: 0
+      # Only fast-forward this fixed ref to the validated, delivered main
+      # snapshot. This job receives neither the signing key nor the webhook.
+      - name: Record delivered snapshot
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
+          git push origin HEAD:refs/heads/addon-announcements-state

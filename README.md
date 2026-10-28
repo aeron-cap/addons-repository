@@ -39,6 +39,18 @@ To sign one entry again even though its signature is valid, run the sign workflo
 
 Maintainers can also sign by hand with `node scripts/addon-signing.mjs sign <folder> --key <private key>` from a [Hibi](https://github.com/schmayterling/hibi) checkout, then copy the resulting `hibi-addon.sig.json` to `signatures/<id>.json`. `npm run check` and `npm run check:remote` fail if a signature does not match the listed files exactly.
 
+## Addon announcements
+
+After a push to `main`, the sign workflow announces published addon additions and updates in Discord through the repository secret `HIBI_ADDONS_WEBHOOK_URL`. Its read-only notification job runs after a successful signature push, or after validation when the push already contains valid signatures. Pull requests, forks, manual re-signs, and superseded signature pushes do not announce. The private signing key stays in the signing job; the webhook secret is available only to the final send step.
+
+Announcements compare addon ids, signed versions, and signed package file hashes. New packages, version changes, and changes to manifests, code, assets, or package readmes announce. Removals, catalog reordering, identical re-signs, and catalog-only cosmetic edits do not. Changing a repository pin or download URL without changing the signed package bytes is also silent. Comparing with the last delivered snapshot covers both unsigned and already-signed changes from superseded or replaced signing runs. Each announcement includes the package name, version, description, package link, change comparison, and a changelog link when the package includes one.
+
+After every batch succeeds, a separate job without either secret fast-forwards the fixed `addon-announcements-state` branch to the delivered commit. It creates no commit and cannot force-push. The existing workflow concurrency group serializes signing, notification, and checkpoint updates. Until that branch exists, the baseline is the first parent of the main-branch commit that introduced the notifier, so existing catalog entries are not announced as new. A missing secret, no package changes, failed delivery, or cancellation leaves the checkpoint unchanged. A checkpoint outside the current main history fails instead of silently resetting.
+
+Messages use the release announcement's butterfly title and muted pink embed, and allow only the addons role `1550310045068296262`. Large updates split into messages within Discord's limits and mention the role only in the first message. Text and URLs are escaped before JSON encoding.
+
+An unset secret logs a notice and skips delivery. Discord rate limits retry at most twice, respecting `Retry-After` up to 60 seconds. Other HTTP errors and network failures fail the notification job without reverting publication or retrying an uncertain delivery. Errors report the batch number without logging the webhook URL or response body. Delivery is at least once: a failed checkpoint write or a retry after partial delivery can repeat messages. Before rerunning a failed notification job, check Discord for messages already delivered; a rerun can repeat earlier batches. Rerun only the failed job to keep its original publication snapshot. `npm test` covers the notifier with mocked HTTP; it never sends a Discord message.
+
 ## License
 
 The catalog, scripts, and documentation in this repository are available under the [MIT License](LICENSE). Each addon has its own license, stated in its catalog entry and included in its folder.
