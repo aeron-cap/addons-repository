@@ -180,7 +180,7 @@
   {
     "id": "excalidraw",
     "name": "Excalidraw",
-    "description": "Edit `.excalidraw` files and Obsidian `.excalidraw.md` drawings as Hibi documents.",
+    "description": "Edit .excalidraw and Obsidian .excalidraw.md drawings as Hibi documents.",
     "version": "0.2.0",
     "apiVersion": 2,
     "kind": "extension",
