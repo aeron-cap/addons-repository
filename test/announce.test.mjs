@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash, generateKeyPairSync } from 'node:crypto'
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -19,6 +20,7 @@ import {
   readSnapshot,
   sendAnnouncements,
 } from '../scripts/announce.mjs'
+import { checkDirectory } from '../scripts/check.mjs'
 import { signDirectory, signingKey } from '../scripts/sign.mjs'
 
 const SHA = 'a'.repeat(40)
@@ -386,7 +388,7 @@ function fixture(t) {
       resign,
       now: () => new Date(resign ? '2030-01-01' : '2026-01-01'),
     })
-  return { root, git, keys, writeCatalog, packageFiles, commit, sign }
+  return { root, git, key, keys, writeCatalog, packageFiles, commit, sign }
 }
 
 test('published snapshots ignore signature timestamps and key material', async (t) => {
@@ -526,29 +528,71 @@ test('a checkpoint outside main ancestry fails instead of silently resetting', a
   assert.throws(() => announcementBase(f.root), /not an ancestor/)
 })
 
-test('preparation refuses unpublished, invalid and mismatched package metadata', async (t) => {
+test('preparation skips unpublished, invalid and mismatched package metadata', async (t) => {
   const f = fixture(t)
   f.writeCatalog([entry()])
   f.packageFiles(entry())
   const pending = f.commit()
-  await assert.rejects(
-    prepareAnnouncements(f.root, pending, { keys: f.keys }),
-    /needs a Hibi signature/,
-  )
+  const skips = async (base) => {
+    const skipped = []
+    const payloads = await prepareAnnouncements(f.root, base, {
+      keys: f.keys,
+      skipped,
+    })
+    assert.deepEqual(payloads, [])
+    assert.deepEqual(
+      skipped.map(({ id }) => id),
+      ['hello'],
+    )
+    return skipped[0].reason
+  }
+  assert.match(await skips(pending), /needs a Hibi signature/)
   await f.sign()
   const signed = f.commit()
   writeFileSync(
     join(f.root, 'addons/hello/index.js'),
     'export const changed = true\n',
   )
-  await assert.rejects(
-    prepareAnnouncements(f.root, signed, { keys: f.keys }),
-    /files do not match/,
-  )
+  assert.match(await skips(signed), /files do not match/)
   f.writeCatalog([entry('hello', { version: '3.0.0' })])
-  await assert.rejects(
-    prepareAnnouncements(f.root, signed, { keys: f.keys }),
-    /does not match hibi-addon.json/,
+  assert.match(await skips(signed), /does not match hibi-addon.json/)
+})
+
+test('one failing addon is skipped while the rest are signed, checked and announced', async (t) => {
+  const f = fixture(t)
+  f.writeCatalog([])
+  const base = f.commit()
+  const broken = entry('broken')
+  f.writeCatalog([entry(), broken])
+  f.packageFiles(entry())
+  f.packageFiles(broken)
+  // The catalog no longer matches the package's manifest.
+  f.writeCatalog([entry(), { ...broken, description: 'something else.' }])
+  const skipped = []
+  assert.deepEqual(
+    await signDirectory(f.root, { key: f.key, keys: f.keys, skipped }),
+    ['hello'],
+  )
+  assert.deepEqual(
+    skipped.map(({ id }) => id),
+    ['broken'],
+  )
+  assert.match(skipped[0].reason, /description does not match/)
+  assert.equal(existsSync(join(f.root, 'signatures/broken.json')), false)
+  await assert.rejects(checkDirectory(f.root, { keys: f.keys }), /broken/)
+  await checkDirectory(f.root, { keys: f.keys, skip: ['broken'] })
+  f.commit()
+  const notAnnounced = []
+  const payloads = await prepareAnnouncements(f.root, base, {
+    keys: f.keys,
+    skipped: notAnnounced,
+  })
+  assert.equal(payloads.length, 1)
+  assert.match(payloads[0].embeds[0].description, /\*\*added\*\* \[hello\]/)
+  assert.doesNotMatch(payloads[0].embeds[0].description, /broken/)
+  assert.deepEqual(
+    notAnnounced.map(({ id }) => id),
+    ['broken'],
   )
 })
 

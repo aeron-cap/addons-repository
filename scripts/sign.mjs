@@ -2,6 +2,8 @@
 // Signs every catalog entry whose signature is missing or no longer matches
 // its files, using the private key in HIBI_ADDON_SIGNING_KEY. Entries with a
 // valid signature are left alone, so running it again changes nothing.
+// Entries that fail their checks or their signing are skipped and reported;
+// the rest are still signed.
 // RESIGN_ID names one entry to sign again even if its signature is valid.
 import {
   createHash,
@@ -9,12 +11,18 @@ import {
   createPublicKey,
   sign,
 } from 'node:crypto'
-import { appendFileSync, existsSync, writeFileSync } from 'node:fs'
+import {
+  appendFileSync,
+  existsSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  checkDirectory,
   inspectDirectory,
+  reportSkipped,
   signatureEnvelope,
   TRUST_KEYS,
 } from './check.mjs'
@@ -37,31 +45,75 @@ export function signingKey(pem, keys = TRUST_KEYS) {
   return { privateKey, keyId }
 }
 
-/** Returns the ids it signed, after checking the whole directory strictly. */
+/**
+ * Returns the ids it signed, after checking every entry it did not skip
+ * strictly. Skipped entries, with the reason, are added to `skipped`; their
+ * files are left as they were.
+ */
 export async function signDirectory(
   root,
-  { key, resign, fetch, keys = TRUST_KEYS, now = () => new Date() } = {},
+  {
+    key,
+    resign,
+    fetch,
+    keys = TRUST_KEYS,
+    now = () => new Date(),
+    skipped = [],
+  } = {},
 ) {
-  const results = await inspectDirectory(root, { remote: true, fetch, keys })
-  if (resign && !results.some(({ entry }) => entry.id === resign))
-    throw new Error(`${resign} is not in catalog.json.`)
+  const inspect = () =>
+    inspectDirectory(root, { remote: true, fetch, keys, skipFailures: true })
+  const results = await inspect()
+  const requested = results.find(({ entry }) => entry.id === resign)
+  if (resign && !requested) throw new Error(`${resign} is not in catalog.json.`)
+  if (requested?.failure) throw new Error(requested.failure)
   const signed = []
-  for (const { entry, hashes, problem } of results) {
+  // Each signed entry's previous files, to put back if it does not verify.
+  const previous = new Map()
+  for (const { entry, hashes, problem, failure } of results) {
+    if (failure) {
+      skipped.push({ id: entry.id, reason: failure })
+      continue
+    }
     if (!problem && entry.id !== resign) continue
-    const envelope = signatureEnvelope(
-      entry,
-      hashes,
-      key.keyId,
-      (statement) => sign(null, statement, key.privateKey),
-      now().toISOString(),
-    )
-    writeFileSync(join(root, 'signatures', `${entry.id}.json`), envelope)
+    const paths = [join(root, 'signatures', `${entry.id}.json`)]
     const own = entry.path && join(root, entry.path, 'hibi-addon.sig.json')
-    if (own && existsSync(own)) writeFileSync(own, envelope)
+    if (own && existsSync(own)) paths.push(own)
+    const before = paths.map((path) =>
+      existsSync(path) ? readFileSync(path) : null,
+    )
+    try {
+      const envelope = signatureEnvelope(
+        entry,
+        hashes,
+        key.keyId,
+        (statement) => sign(null, statement, key.privateKey),
+        now().toISOString(),
+      )
+      for (const path of paths) writeFileSync(path, envelope)
+    } catch (error) {
+      restore(paths, before)
+      skipped.push({ id: entry.id, reason: error.message })
+      continue
+    }
+    previous.set(entry.id, [paths, before])
     signed.push(entry.id)
   }
-  if (signed.length) await checkDirectory(root, { remote: true, fetch, keys })
+  if (!signed.length) return signed
+  for (const { entry, problem, failure } of await inspect()) {
+    if (!previous.has(entry.id) || (!problem && !failure)) continue
+    restore(...previous.get(entry.id))
+    signed.splice(signed.indexOf(entry.id), 1)
+    skipped.push({ id: entry.id, reason: failure ?? problem })
+  }
   return signed
+}
+
+function restore(paths, before) {
+  paths.forEach((path, index) => {
+    if (before[index]) writeFileSync(path, before[index])
+    else rmSync(path, { force: true })
+  })
 }
 
 if (
@@ -78,14 +130,19 @@ if (
     const key = signingKey(process.env.HIBI_ADDON_SIGNING_KEY, {
       [CI_KEY_ID]: TRUST_KEYS[CI_KEY_ID],
     })
-    const signed = await signDirectory(root, { key, resign })
+    const skipped = []
+    const signed = await signDirectory(root, { key, resign, skipped })
     console.log(
       signed.length
         ? `signed ${signed.join(', ')} with ${key.keyId}`
         : 'every signature is current',
     )
+    reportSkipped(skipped, 'Addons skipped while signing')
     if (process.env.GITHUB_OUTPUT)
-      appendFileSync(process.env.GITHUB_OUTPUT, `signed=${signed.join(' ')}\n`)
+      appendFileSync(
+        process.env.GITHUB_OUTPUT,
+        `signed=${signed.join(' ')}\nskipped=${skipped.map(({ id }) => id).join(' ')}\n`,
+      )
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1

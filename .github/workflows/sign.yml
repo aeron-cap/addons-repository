@@ -30,6 +30,7 @@ jobs:
     outputs:
       commit: ${{ steps.head.outputs.commit }}
       signed: ${{ steps.sign.outputs.signed }}
+      skipped: ${{ steps.sign.outputs.skipped }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -41,7 +42,8 @@ jobs:
         with:
           node-version: 24
       # Reads linked packages without running them, signs what changed, then
-      # checks the whole directory strictly.
+      # checks every signed entry strictly. Entries that fail are skipped and
+      # listed in the job summary; the rest are still signed and published.
       - id: sign
         run: node scripts/sign.mjs
         env:
@@ -81,6 +83,7 @@ jobs:
       - name: Commit only signature files
         env:
           SIGNED: ${{ needs.sign.outputs.signed }}
+          SKIPPED: ${{ needs.sign.outputs.skipped }}
         run: |
           git apply --index signatures.patch
           rm signatures.patch
@@ -91,7 +94,8 @@ jobs:
             exit 1
           fi
           rm changes.txt
-          npm run check
+          # Only the entries the signer skipped may fail; the rest are strict.
+          node scripts/check.mjs --skip="$SKIPPED"
           git -c user.name=schmayterling -c user.email=ryana@ryanaque.com \
             commit -m "chore(signatures): sign ${SIGNED}"
       # A plain push only fast-forwards. If main moved, the run started by that

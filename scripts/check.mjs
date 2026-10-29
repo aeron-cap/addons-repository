@@ -4,7 +4,7 @@
 // repository folder and download and checks its files against the signature.
 import { execFileSync } from 'node:child_process'
 import { createHash, createPublicKey, verify } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs'
 import { extname, join, relative, resolve, sep } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { fileURLToPath } from 'node:url'
@@ -678,11 +678,13 @@ function signatureProblem(root, entry, hashes, keys) {
 /**
  * Checks the catalog and every package, and reports each entry's signature
  * state. Without `remote`, linked repositories and downloads are not read, so
- * only their signed id and version are compared.
+ * only their signed id and version are compared. With `skipFailures`, an entry
+ * that fails its checks is returned with the reason as `failure` instead of
+ * stopping the others; problems with the catalog itself still throw.
  */
 export async function inspectDirectory(
   root,
-  { remote = false, fetch: get, keys = TRUST_KEYS } = {},
+  { remote = false, fetch: get, keys = TRUST_KEYS, skipFailures = false } = {},
 ) {
   const source = readFileSync(join(root, 'catalog.json'))
   if (source.length > MAX_CATALOG_BYTES)
@@ -714,33 +716,65 @@ export async function inspectDirectory(
       throw new Error(`signatures/${name} does not belong to a catalog entry.`)
   const results = []
   for (const entry of catalog) {
-    let checked = null
-    if (entry.path) checked = checkPackage(root, entry)
-    else if (remote) {
-      const files = entry.repository
-        ? await repositoryFiles(entry, { fetch: get })
-        : await downloadFiles(entry, { fetch: get })
-      checked = checkFiles(entry.id, entry, [...files.keys()], (path) =>
-        files.get(path),
-      )
+    try {
+      let checked = null
+      if (entry.path) checked = checkPackage(root, entry)
+      else if (remote) {
+        const files = entry.repository
+          ? await repositoryFiles(entry, { fetch: get })
+          : await downloadFiles(entry, { fetch: get })
+        checked = checkFiles(entry.id, entry, [...files.keys()], (path) =>
+          files.get(path),
+        )
+      }
+      const hashes = checked?.hashes ?? null
+      const problem = signatureProblem(root, entry, hashes, keys)
+      if (checked) checkSignedLimits(root, entry, checked, problem)
+      results.push({ entry, hashes, problem })
+    } catch (error) {
+      if (!skipFailures) throw error
+      results.push({ entry, hashes: null, problem: null, failure: error.message })
     }
-    const hashes = checked?.hashes ?? null
-    const problem = signatureProblem(root, entry, hashes, keys)
-    if (checked) checkSignedLimits(root, entry, checked, problem)
-    results.push({ entry, hashes, problem })
   }
   return results
 }
 
 /**
+ * Notes skipped entries as workflow warnings and in the job summary. The run
+ * still passes, so the rest of the directory is published.
+ */
+export function reportSkipped(skipped, heading = 'Skipped addons') {
+  const command = (text) =>
+    text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  for (const { id, reason } of skipped)
+    console.log(`::warning title=${command(id)} skipped::${command(reason)}`)
+  if (!skipped.length || !process.env.GITHUB_STEP_SUMMARY) return
+  const cell = (text) => text.replace(/\|/g, '\\|').replace(/\s+/g, ' ')
+  appendFileSync(
+    process.env.GITHUB_STEP_SUMMARY,
+    `### ${heading}\n\nThe run continued without these addons.\n\n| addon | reason |\n| --- | --- |\n${skipped
+      .map(({ id, reason }) => `| ${cell(id)} | ${cell(reason)} |`)
+      .join('\n')}\n\n`,
+  )
+}
+
+/**
  * Returns the catalog after checking it. With `pending`, entries whose
  * signature is missing or outdated pass, so pull requests can wait for the
- * signature that is added after they merge.
+ * signature that is added after they merge. Entries whose ids are in `skip`
+ * may fail; every other entry is checked strictly.
  */
 export async function checkDirectory(root, options = {}) {
-  const results = await inspectDirectory(root, options)
-  const problem = results.find((result) => result.problem)?.problem
-  if (problem && !options.pending) throw new Error(problem)
+  const skip = new Set(options.skip ?? [])
+  const results = await inspectDirectory(root, {
+    ...options,
+    skipFailures: skip.size > 0,
+  })
+  for (const { entry, problem, failure } of results) {
+    if (skip.has(entry.id)) continue
+    if (failure) throw new Error(failure)
+    if (problem && !options.pending) throw new Error(problem)
+  }
   return results.map((result) => result.entry)
 }
 
@@ -752,19 +786,39 @@ if (
 ) {
   const root = fileURLToPath(new URL('..', import.meta.url))
   const pending = process.argv.includes('--pending')
+  // --report notes failing entries instead of failing; --skip=<ids> lets only
+  // the named entries fail, as the signer reports them.
+  const report = process.argv.includes('--report')
+  const skip = new Set(
+    (process.argv.find((arg) => arg.startsWith('--skip=')) ?? '--skip=')
+      .slice('--skip='.length)
+      .split(/[\s,]+/)
+      .filter(Boolean),
+  )
   try {
+    for (const id of skip)
+      if (!ID.test(id)) throw new Error(`--skip lists an invalid id: ${id}.`)
     const results = await inspectDirectory(root, {
       remote: process.argv.includes('--remote'),
+      skipFailures: report || skip.size > 0,
     })
-    for (const { entry, problem } of results) {
+    const skipped = []
+    for (const { entry, problem, failure } of results) {
       const source = SOURCES.find((key) => entry[key])
-      if (!problem) console.log(`ok ${entry.id} ${entry.version} (${source})`)
+      if (failure) {
+        if (!report && !skip.has(entry.id)) throw new Error(failure)
+        skipped.push({ id: entry.id, reason: failure })
+      } else if (!problem)
+        console.log(`ok ${entry.id} ${entry.version} (${source})`)
       else if (pending)
         console.log(
           `pending ${entry.id} ${entry.version} (${source}): ${problem} It is signed after it merges.`,
         )
+      else if (skip.has(entry.id))
+        skipped.push({ id: entry.id, reason: problem })
       else throw new Error(problem)
     }
+    reportSkipped(skipped)
   } catch (error) {
     console.error(error.stderr?.toString() || error.message)
     process.exitCode = 1
