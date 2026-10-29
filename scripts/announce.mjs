@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
-import { inspectDirectory } from './check.mjs'
+import { inspectDirectory, reportSkipped } from './check.mjs'
 
 const REPOSITORY = 'https://github.com/hibigarden/addons-repository'
 const ROLE = '1550310045068296262'
@@ -182,20 +182,29 @@ export function announcementPayloads(changes, revision) {
   return payloads
 }
 
+/**
+ * Entries that fail validation or are not signed yet are not announced; each
+ * is added to `options.skipped` with the reason. An entry skipped because the
+ * signer skipped it keeps its old signature, so it is announced in the run
+ * that signs it. One whose new signature fails here is not announced later.
+ */
 export async function prepareAnnouncements(
   root,
   base = announcementBase(root),
-  options = {},
+  { skipped = [], ...options } = {},
 ) {
   const revision = git(root, 'rev-parse', 'HEAD')
-  const results = await inspectDirectory(root, { ...options, remote: true })
-  const problem = results.find((result) => result.problem)?.problem
-  if (problem) throw new Error(problem)
-  const after = results.map(({ entry, hashes }) => ({
-    entry,
-    version: entry.version,
-    files: hashes,
-  }))
+  const results = await inspectDirectory(root, {
+    ...options,
+    remote: true,
+    skipFailures: true,
+  })
+  const after = results.flatMap(({ entry, hashes, problem, failure }) => {
+    if (!failure && !problem)
+      return [{ entry, version: entry.version, files: hashes }]
+    skipped.push({ id: entry.id, reason: failure ?? problem })
+    return []
+  })
   const changes = classifyChanges(readSnapshot(root, base), after)
   for (const change of changes)
     change.previousRevision =
@@ -278,7 +287,11 @@ if (
 ) {
   try {
     if (process.argv[2] === 'prepare') {
-      const payloads = await prepareAnnouncements(process.cwd())
+      const skipped = []
+      const payloads = await prepareAnnouncements(process.cwd(), undefined, {
+        skipped,
+      })
+      reportSkipped(skipped, 'Addons not announced')
       writeFileSync('announcements.json', JSON.stringify(payloads))
       if (process.env.GITHUB_OUTPUT)
         appendFileSync(

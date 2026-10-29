@@ -24,9 +24,11 @@ jobs:
         with:
           node-version: 24
       # Merged entries are signed by the sign workflow, so a missing or outdated
-      # signature is reported here instead of failing. Invalid signatures fail.
-      - run: npm run check -- --pending
+      # signature is reported here instead of failing. Invalid signatures fail
+      # pull requests; on main, failing entries are listed in the job summary
+      # and skipped, as the sign workflow skips them.
+      - run: npm run check -- --pending ${{ github.event_name == 'push' && '--report' || '' }}
       - run: npm test
-      - run: npm run check:remote -- --pending
+      - run: npm run check:remote -- --pending ${{ github.event_name == 'push' && '--report' || '' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}

@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash, generateKeyPairSync } from 'node:crypto'
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -16,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import {
   checkDirectory,
   inspectDirectory,
+  reportSkipped,
   signatureEnvelope,
   TRUST_KEYS,
 } from '../scripts/check.mjs'
@@ -146,16 +148,27 @@ test('forged signatures are refused, not replaced', async (t) => {
   const envelope = JSON.parse(read(directory, 'signatures/typing-speed.json'))
   const signature = Buffer.from(envelope.signature, 'base64')
   signature[0] ^= 1
-  writeFileSync(
-    join(directory, 'signatures/typing-speed.json'),
-    JSON.stringify({ ...envelope, signature: signature.toString('base64') }),
-  )
+  const forged = JSON.stringify({
+    ...envelope,
+    signature: signature.toString('base64'),
+  })
+  writeFileSync(join(directory, 'signatures/typing-speed.json'), forged)
   await assert.rejects(
     checkDirectory(directory, { keys, pending: true }),
     /invalid signature/,
   )
+  // The signer skips the entry and reports it; it does not sign over it.
+  const skipped = []
+  assert.deepEqual(
+    await signDirectory(directory, { key, keys, fetch, skipped }),
+    [],
+  )
+  assert.equal(skipped.length, 1)
+  assert.equal(skipped[0].id, 'typing-speed')
+  assert.match(skipped[0].reason, /invalid signature/)
+  assert.equal(read(directory, 'signatures/typing-speed.json'), forged)
   await assert.rejects(
-    signDirectory(directory, { key, keys, fetch }),
+    signDirectory(directory, { key, keys, fetch, resign: 'typing-speed' }),
     /invalid signature/,
   )
 })
@@ -176,4 +189,47 @@ test('pending entries are measured with the signature the signer writes', async 
     Buffer.byteLength(measured),
     readFileSync(join(directory, 'signatures/typing-speed.json')).length,
   )
+})
+
+test('skipped entries are reported as warnings and in the job summary', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'hibi-report-'))
+  t.after(() => rmSync(directory, { recursive: true, force: true }))
+  const summary = join(directory, 'summary.md')
+  const before = process.env.GITHUB_STEP_SUMMARY
+  process.env.GITHUB_STEP_SUMMARY = summary
+  t.after(() => {
+    if (before === undefined) delete process.env.GITHUB_STEP_SUMMARY
+    else process.env.GITHUB_STEP_SUMMARY = before
+  })
+  const log = t.mock.method(console, 'log', () => {})
+  reportSkipped([{ id: 'broken', reason: 'a | b\n100% wrong' }], 'Skipped')
+  assert.deepEqual(log.mock.calls[0].arguments, [
+    '::warning title=broken skipped::a | b%0A100%25 wrong',
+  ])
+  assert.match(read(directory, 'summary.md'), /### Skipped\n/)
+  assert.match(read(directory, 'summary.md'), /\| broken \| a \\\| b 100% wrong \|/)
+  reportSkipped([])
+  assert.equal(log.mock.callCount(), 1)
+})
+
+test('the check passes with skipped or reported entries and stays strict for the rest', () => {
+  const check = (...args) =>
+    spawnSync(process.execPath, ['scripts/check.mjs', ...args], {
+      cwd: root,
+      env: { PATH: process.env.PATH },
+      encoding: 'utf8',
+    })
+  const unsigned = JSON.parse(read(root, 'catalog.json'))
+    .map((entry) => entry.id)
+    .filter((id) => !existsSync(join(root, 'signatures', `${id}.json`)))
+  if (unsigned.length) {
+    assert.equal(check().status, 1)
+    const skipped = check(`--skip=${unsigned.join(',')}`)
+    assert.equal(skipped.status, 0, skipped.stderr)
+    for (const id of unsigned)
+      assert.match(skipped.stdout, new RegExp(`::warning title=${id} skipped::`))
+  }
+  const invalid = check('--skip=Not An Id!')
+  assert.equal(invalid.status, 1)
+  assert.match(invalid.stderr, /--skip lists an invalid id/)
 })
