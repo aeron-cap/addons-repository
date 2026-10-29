@@ -52,6 +52,7 @@ test('the catalog and nested packages are valid', async () => {
       'rose-pine-dawn',
       'tokyo-night',
       'typing-speed',
+      'excalidraw',
     ],
   )
 })
