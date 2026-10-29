@@ -100,6 +100,27 @@
     }
   },
   {
+    "id": "markdown-formatter",
+    "name": "Markdown Formatter",
+    "description": "Format standard Markdown and GFM notes from Source view.",
+    "version": "0.1.0",
+    "apiVersion": 3,
+    "kind": "extension",
+    "authors": [
+      {
+        "displayName": "aeron-cap",
+        "github": "aeron-cap"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/aeron-cap/hibi-markdown-formatter",
+    "repository": {
+      "url": "https://github.com/aeron-cap/hibi-markdown-formatter",
+      "commit": "6ca0b6da9a38b94909d338137ab4b98de04c1ca7",
+      "path": "addons/markdown-formatter"
+    }
+  },
+  {
     "id": "one-dark-pro",
     "name": "one dark pro",
     "description": "atom-inspired dark colors with one dark pro syntax highlighting.",
