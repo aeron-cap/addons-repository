@@ -176,5 +176,26 @@
     "authors": [{ "discordId": "1262793452236570667", "displayName": "may" }],
     "license": "GPL-3.0-only",
     "path": "addons/typing-speed"
+  },
+  {
+    "id": "excalidraw",
+    "name": "Excalidraw",
+    "description": "Edit `.excalidraw` files and Obsidian `.excalidraw.md` drawings as Hibi documents.",
+    "version": "0.2.0",
+    "apiVersion": 2,
+    "kind": "extension",
+    "authors": [
+      {
+        "github": "lizainslie",
+        "discordId": "543542278967394322",
+        "displayName": "mey"
+      }
+    ],
+    "license": "MIT",
+    "repository": {
+      "url": "https://github.com/lizainslie/hibi-addons",
+      "commit": "5495797519ff3b4cc4a88a0144a280ee66883b74",
+      "path": "addons/excalidraw"
+    }
   }
 ]
